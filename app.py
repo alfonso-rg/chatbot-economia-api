@@ -36,6 +36,13 @@ def extract_openai_error(exc: Exception) -> str:
     details = str(exc).strip()
     if not details:
         details = exc.__class__.__name__
+
+    if "unexpected keyword argument 'proxies'" in details:
+        return (
+            "Error de compatibilidad de dependencias (OpenAI/httpx). "
+            "Actualiza y reinstala requirements para continuar."
+        )
+
     return f"Error al contactar con OpenAI: {details}"
 
 
