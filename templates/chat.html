@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Chatbot de Economía Española{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h1>Chatbot experto en economía española</h1>
+  <p class="subtitle">Haz preguntas sobre inflación, empleo, vivienda, impuestos o política económica en España.</p>
+
+  <div id="chat-window" class="chat-window"></div>
+
+  <form id="chat-form" class="chat-form">
+    <textarea id="chat-input" placeholder="Escribe tu mensaje..." rows="3" required></textarea>
+    <div class="actions">
+      <button type="submit" class="btn primary">Enviar</button>
+      <button type="button" id="reset-chat" class="btn danger">Reiniciar conversación</button>
+    </div>
+  </form>
+</section>
+<script src="{{ url_for('static', filename='chat.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Economía IA{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">Economía IA</div>
+      <nav>
+        <a href="{{ url_for('chat_page') }}" class="nav-link {% if active == 'chat' %}active{% endif %}">Chatbot</a>
+        <a href="{{ url_for('sentiment_page') }}" class="nav-link {% if active == 'sentimientos' %}active{% endif %}">Analizador de Sentimientos</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
