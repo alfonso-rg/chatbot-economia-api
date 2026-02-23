@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Analizador de Sentimientos{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h1>Analizador de Sentimientos</h1>
+  <p class="subtitle">Analiza textos individuales o lotes en CSV para detectar sentimiento y confianza.</p>
+
+  <div class="tool-grid">
+    <article class="card">
+      <h2>Texto libre</h2>
+      <textarea id="sentiment-text" rows="5" placeholder="Escribe o pega aquí un texto..."></textarea>
+      <button id="analyze-text" class="btn primary">Analizar texto</button>
+      <div id="text-result" class="result"></div>
+    </article>
+
+    <article class="card">
+      <h2>Subir CSV</h2>
+      <p class="hint">Sube un CSV con frases en la primera columna.</p>
+      <input id="csv-file" type="file" accept=".csv" />
+      <button id="analyze-csv" class="btn primary">Analizar CSV y descargar</button>
+      <div id="csv-result" class="result"></div>
+    </article>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='sentiment.js') }}"></script>
+{% endblock %}
