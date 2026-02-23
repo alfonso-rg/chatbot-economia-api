@@ -24,9 +24,29 @@ function renderMessages(history) {
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
+async function parseJsonSafe(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    return { error: `Respuesta inesperada del servidor (${response.status}). ${text.slice(0, 120)}` };
+  }
+
+  try {
+    return await response.json();
+  } catch (_) {
+    return { error: 'La respuesta del servidor no es JSON válido.' };
+  }
+}
+
 async function fetchHistory() {
   const res = await fetch('/api/chat/history');
-  const data = await res.json();
+  const data = await parseJsonSafe(res);
+
+  if (!res.ok) {
+    chatWindow.innerHTML = `<div class="result">${data.error || 'No se pudo cargar el historial.'}</div>`;
+    return;
+  }
+
   renderMessages(data.history || []);
 }
 
@@ -43,7 +63,7 @@ chatForm.addEventListener('submit', async (e) => {
     body: JSON.stringify({ message })
   });
 
-  const data = await res.json();
+  const data = await parseJsonSafe(res);
   if (!res.ok) {
     alert(data.error || 'Error al enviar el mensaje.');
     return;

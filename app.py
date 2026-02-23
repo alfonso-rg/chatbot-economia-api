@@ -28,6 +28,17 @@ def set_chat_history(history: List[Dict[str, str]]) -> None:
     session[CHAT_SESSION_KEY] = history
 
 
+def json_error(message: str, status_code: int = 500):
+    return jsonify({"error": message}), status_code
+
+
+def extract_openai_error(exc: Exception) -> str:
+    details = str(exc).strip()
+    if not details:
+        details = exc.__class__.__name__
+    return f"Error al contactar con OpenAI: {details}"
+
+
 def get_client() -> OpenAI:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -107,17 +118,23 @@ def chat_api():
 
     history = get_chat_history()
     history.append({"role": "user", "content": user_message})
-
     model_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
 
-    client = get_client()
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=0.4,
-        messages=model_messages,
-    )
+    try:
+        client = get_client()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.4,
+            messages=model_messages,
+        )
+        assistant_reply = (response.choices[0].message.content or "").strip()
+        if not assistant_reply:
+            return json_error("El modelo no devolvió contenido.", 502)
+    except RuntimeError as exc:
+        return json_error(str(exc), 500)
+    except Exception as exc:
+        return json_error(extract_openai_error(exc), 502)
 
-    assistant_reply = response.choices[0].message.content.strip()
     history.append({"role": "assistant", "content": assistant_reply})
     set_chat_history(history)
 
@@ -138,7 +155,13 @@ def sentiment_text():
     if not text:
         return jsonify({"error": "Debes proporcionar un texto para analizar."}), 400
 
-    result = analyze_single_text(text)
+    try:
+        result = analyze_single_text(text)
+    except RuntimeError as exc:
+        return json_error(str(exc), 500)
+    except Exception as exc:
+        return json_error(extract_openai_error(exc), 502)
+
     return jsonify(result)
 
 
@@ -160,18 +183,23 @@ def sentiment_csv():
     first_column = reader.fieldnames[0]
     results = []
 
-    for row in reader:
-        phrase = (row.get(first_column) or "").strip()
-        if not phrase:
-            continue
-        analysis = analyze_single_text(phrase)
-        results.append(
-            {
-                "frase": phrase,
-                "sentimiento": analysis["sentimiento"],
-                "confianza": analysis["confianza"],
-            }
-        )
+    try:
+        for row in reader:
+            phrase = (row.get(first_column) or "").strip()
+            if not phrase:
+                continue
+            analysis = analyze_single_text(phrase)
+            results.append(
+                {
+                    "frase": phrase,
+                    "sentimiento": analysis["sentimiento"],
+                    "confianza": analysis["confianza"],
+                }
+            )
+    except RuntimeError as exc:
+        return json_error(str(exc), 500)
+    except Exception as exc:
+        return json_error(extract_openai_error(exc), 502)
 
     if not results:
         return jsonify({"error": "No se encontraron frases válidas para analizar."}), 400
@@ -190,6 +218,22 @@ def sentiment_csv():
         as_attachment=True,
         download_name="analisis_sentimientos.csv",
     )
+
+
+@app.errorhandler(500)
+def handle_internal_error(_error):
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Error interno del servidor."}), 500
+    return "Error interno del servidor", 500
+
+
+@app.errorhandler(404)
+def handle_not_found(_error):
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Endpoint no encontrado."}), 404
+    return "No encontrado", 404
+
+
 
 
 if __name__ == "__main__":

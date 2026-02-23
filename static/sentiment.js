@@ -6,6 +6,20 @@ const analyzeCsvButton = document.getElementById('analyze-csv');
 const csvInput = document.getElementById('csv-file');
 const csvResult = document.getElementById('csv-result');
 
+async function parseJsonSafe(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    return { error: `Respuesta inesperada del servidor (${response.status}). ${text.slice(0, 120)}` };
+  }
+
+  try {
+    return await response.json();
+  } catch (_) {
+    return { error: 'La respuesta del servidor no es JSON válido.' };
+  }
+}
+
 analyzeTextButton.addEventListener('click', async () => {
   const text = textInput.value.trim();
   if (!text) {
@@ -21,7 +35,7 @@ analyzeTextButton.addEventListener('click', async () => {
     body: JSON.stringify({ text })
   });
 
-  const data = await res.json();
+  const data = await parseJsonSafe(res);
   if (!res.ok) {
     textResult.textContent = data.error || 'No se pudo analizar el texto.';
     return;
@@ -51,14 +65,8 @@ analyzeCsvButton.addEventListener('click', async () => {
   });
 
   if (!res.ok) {
-    let message = 'No se pudo procesar el archivo.';
-    try {
-      const err = await res.json();
-      message = err.error || message;
-    } catch (_) {
-      // Ignorado
-    }
-    csvResult.textContent = message;
+    const err = await parseJsonSafe(res);
+    csvResult.textContent = err.error || 'No se pudo procesar el archivo.';
     return;
   }
 
